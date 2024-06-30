@@ -10,15 +10,6 @@ function logError($message, $databaseName = null)
 		$errorDetails .= " (Database: " . $databaseName . ")";
 	}
 
-	// Output the error using SweetAlert 2
-	echo "<script>
-            Swal.fire({
-                icon: 'error',
-                title: 'Error Occurred',
-                html: '" . addslashes($errorDetails) . "'
-            });
-          </script>";
-
 
 
 	$errorDetails .= "\n";
@@ -35,10 +26,10 @@ function backDb($host, $user, $pass, $dbname, $tables = '*')
 {
 	$conn = new mysqli($host, $user, $pass, $dbname);
 	if ($conn->connect_error) {
-		logError("Connection failed: " . $conn->connect_error);
-		die("Connection failed: " . $conn->connect_error);
+		// logError("Connection failed: " . $conn->connect_error);
+		// die("Connection failed: " . $conn->connect_error);
 	}
-	echo "Connected successfully<br>";
+	// echo "Connected successfully<br>";
 
 	if ($tables == '*') {
 		$tables = array();
@@ -77,7 +68,7 @@ function backDb($host, $user, $pass, $dbname, $tables = '*')
 		$outsql .= "\n";
 	}
 
-	$backup_file_name = $dbname . '_database.sql';
+	$backup_file_name = $dbname . '_database_' . date("Y-m-d_H-i-s") . '.sql';
 	$fileHandler = fopen($backup_file_name, 'w+');
 	fwrite($fileHandler, $outsql);
 	fclose($fileHandler);
@@ -106,51 +97,38 @@ function backupDiffDb($host, $user, $pass, $dbname, $lastBackupTime)
 		die("Connection failed: " . $conn->connect_error);
 	}
 
-	$tables = array();
-	$sql = "SHOW TABLES";
-	$query = $conn->query($sql);
-	while ($row = $query->fetch_row()) {
-		$tables[] = $row[0];
-	}
-
 	$outsql = '';
-	foreach ($tables as $table) {
-		$sql = "SHOW CREATE TABLE $table";
-		$query = $conn->query($sql);
-		$row = $query->fetch_row();
-		$outsql .= "\n\n" . $row[1] . ";\n\n";
+	$sql = "SELECT * FROM audit_log WHERE timestamp > '$lastBackupTime'";
+	$query = $conn->query($sql);
 
-		// Check if the table has an 'updated_at' column
-		$sql = "SHOW COLUMNS FROM $table LIKE 'updated_at'";
-		$query = $conn->query($sql);
-		if ($query->num_rows > 0) {
-			$sql = "SELECT * FROM $table WHERE updated_at > '$lastBackupTime'";
-			$query = $conn->query($sql);
+	while ($row = $query->fetch_assoc()) {
+		$table = $row['table_name'];
+		$operation = $row['operation'];
+		$old_data = $row['old_data'];
+		$new_data = $row['new_data'];
 
-			if ($query) {
-				$columnCount = $query->field_count;
-				for ($i = 0; $i < $columnCount; $i++) {
-					while ($row = $query->fetch_row()) {
-						$outsql .= "INSERT INTO $table VALUES(";
-						for ($j = 0; $j < $columnCount; $j++) {
-							$outsql .= isset($row[$j]) ? '"' . $row[$j] . '"' : '""';
-							if ($j < ($columnCount - 1)) {
-								$outsql .= ',';
-							}
-						}
-						$outsql .= ");\n";
-					}
-				}
-				$outsql .= "\n";
-			} else {
-				logError("Query failed: " . $conn->error);
+		if ($operation == 'UPDATE') {
+			// Generate SQL for updating the row
+			$update_data = explode(', ', $new_data);
+			$update_sql = "UPDATE $table SET ";
+			foreach ($update_data as $data) {
+				list($column, $value) = explode(': ', $data);
+				$update_sql .= "$column = \"$value\", ";
 			}
-		} else {
-			logError("Table $table does not have an 'updated_at' column");
+			$update_sql = rtrim($update_sql, ', ');
+			$update_sql .= " WHERE ";
+
+			$old_data_array = explode(', ', $old_data);
+			foreach ($old_data_array as $data) {
+				list($column, $value) = explode(': ', $data);
+				$update_sql .= "$column = \"$value\" AND ";
+			}
+			$update_sql = rtrim($update_sql, ' AND ') . ";\n";
+			$outsql .= $update_sql;
 		}
 	}
 
-	$backup_file_name = $dbname . '_diff_database.sql';
+	$backup_file_name = $dbname . '_diff_database_' . date("Y-m-d_H-i-s") . '.sql';
 	$fileHandler = fopen($backup_file_name, 'w+');
 	fwrite($fileHandler, $outsql);
 	fclose($fileHandler);
@@ -168,6 +146,7 @@ function backupDiffDb($host, $user, $pass, $dbname, $lastBackupTime)
 	readfile($backup_file_name);
 	unlink($backup_file_name);
 }
+
 function backupTransactionLog($host, $user, $pass, $dbname)
 {
 	// Nama file backup
@@ -201,23 +180,7 @@ function backupTransactionLog($host, $user, $pass, $dbname)
 
 		// Keluar setelah unduhan
 		exit();
-	} else {
-		// Menampilkan debugging
-		echo "Backup database gagal. Perintah yang dijalankan: $command\n";
-		echo "Output:\n" . implode("\n", $output) . "\n";
-		echo "Return var: " . $return_var . "\n";
-
-		// Memeriksa apakah mysqldump dapat ditemukan dan dijalankan
-		exec('where mysqldump 2>&1', $where_output, $where_return_var);
-		if ($where_return_var !== 0) {
-			echo "Perintah mysqldump tidak ditemukan dalam path sistem.\n";
-			echo "Output where mysqldump:\n" . implode("\n", $where_output) . "\n";
-		} else {
-			echo "Perintah mysqldump ditemukan di: " . implode("\n", $where_output) . "\n";
-		}
 	}
-
-	error_log("Backup database MySQL gagal untuk: $dbname", 0);
 }
 
 function logShipping($host, $user, $pass, $primaryDb, $secondaryHost, $secondaryUser, $secondaryPass, $secondaryDb)
@@ -225,13 +188,13 @@ function logShipping($host, $user, $pass, $primaryDb, $secondaryHost, $secondary
 	// Koneksi ke database utama (primaryDb)
 	$connPrimary = new mysqli($host, $user, $pass, $primaryDb);
 	if ($connPrimary->connect_error) {
-		die("Connection to primary server failed: " . $connPrimary->connect_error);
+		// die("Connection to primary server failed: " . $connPrimary->connect_error);
 	}
 
 	// Koneksi ke database sekunder (backuplog)
 	$connSecondary = new mysqli($secondaryHost, $secondaryUser, $secondaryPass, $secondaryDb);
 	if ($connSecondary->connect_error) {
-		die("Connection to secondary server failed: " . $connSecondary->connect_error);
+		// die("Connection to secondary server failed: " . $connSecondary->connect_error);
 	}
 
 	// Mendapatkan daftar tabel dari database utama
@@ -239,7 +202,7 @@ function logShipping($host, $user, $pass, $primaryDb, $secondaryHost, $secondary
 	$sql = "SHOW TABLES";
 	$query = $connPrimary->query($sql);
 	if ($query === false) {
-		die("Error fetching tables: " . $connPrimary->error);
+		// die("Error fetching tables: " . $connPrimary->error);
 	}
 
 	while ($row = $query->fetch_row()) {
@@ -272,10 +235,10 @@ function logShipping($host, $user, $pass, $primaryDb, $secondaryHost, $secondary
 		}
 
 		$connSecondary->commit();
-		echo "Table data shipping successful.";
+		// echo "Table data shipping successful.";
 	} catch (Exception $e) {
 		$connSecondary->rollback();
-		die("Error: " . $e->getMessage());
+		// die("Error: " . $e->getMessage());
 	}
 
 	// Tutup koneksi database
