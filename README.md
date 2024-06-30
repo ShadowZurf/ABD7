@@ -1,5 +1,5 @@
 Langkah-langkah untuk mencoba:
-Ada 2 cara, yaitu melewati clone repository github atau melewati download zip file secara langsung
+Ada 2 cara, yaitu melewati clone repository github atau melewati download zip file secara langsung (untuk download zip file, beresiko tidak bisa didownload karena terdeteksi virus)
 
 1. Masukkan ke dalam file \xampp\htdocs untuk menginisiasinya ke dalam localhost
 2. nyalakan xampp apache dan mySQL
