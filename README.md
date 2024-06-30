@@ -8,4 +8,5 @@ Ada 2 cara, yaitu melewati clone repository github atau melewati download zip fi
 5. aplikasi siap dicoba.
 6. Sebagai catatan, database yang bisa diupdate adalah database yang berada di phpmyadmin.
 7. Sebagai catatan, default isi host adalah localhost, default isi database username adalah root, dan default isi database password (tidak ada)
-8. #SELURUH INFORMASI TELAH DIJELASKAN DALAM YOUTUBE#
+8. Sebagai catatan, untuk melakukan transaction log dan diff diperlukan beberapa integrasi, semua sudah dijelaskan dalam video
+10. #SELURUH INFORMASI TELAH DIJELASKAN DALAM YOUTUBE#
