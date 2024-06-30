@@ -68,7 +68,7 @@ function backDb($host, $user, $pass, $dbname, $tables = '*')
 		$outsql .= "\n";
 	}
 
-	$backup_file_name = $dbname . '_database_' . date("Y-m-d_H-i-s") . '.sql';
+	$backup_file_name = $dbname . 'database' . date("Y-m-d_H-i-s") . '.bak';
 	$fileHandler = fopen($backup_file_name, 'w+');
 	fwrite($fileHandler, $outsql);
 	fclose($fileHandler);
@@ -128,7 +128,7 @@ function backupDiffDb($host, $user, $pass, $dbname, $lastBackupTime)
 		}
 	}
 
-	$backup_file_name = $dbname . '_diff_database_' . date("Y-m-d_H-i-s") . '.sql';
+	$backup_file_name = $dbname . 'diff_database' . date("Y-m-d_H-i-s") . '.bak';
 	$fileHandler = fopen($backup_file_name, 'w+');
 	fwrite($fileHandler, $outsql);
 	fclose($fileHandler);
@@ -150,7 +150,7 @@ function backupDiffDb($host, $user, $pass, $dbname, $lastBackupTime)
 function backupTransactionLog($host, $user, $pass, $dbname)
 {
 	// Nama file backup
-	$backup_file_name = $dbname . '_backup_' . date("Y-m-d_H-i-s") . '.sql';
+	$backup_file_name = $dbname . 'backup' . date("Y-m-d_H-i-s") . '.bak';
 
 	// Perintah mysqldump untuk melakukan backup
 	$command = "mysqldump --host=$host --user=$user --password=$pass $dbname > $backup_file_name";

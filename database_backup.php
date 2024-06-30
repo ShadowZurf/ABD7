@@ -28,7 +28,7 @@
 			echo "<script>
                 Swal.fire({
                     title: 'Error',
-                    text: 'Data tidak sesuai, periksa kembali field anda.',
+                    text: 'Failed to connect to database:.',
                     icon: 'error',
                     confirmButtonText: 'OK'
                 }).then(() => {
